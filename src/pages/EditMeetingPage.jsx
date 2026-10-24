@@ -1,35 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import MeetingForm from '../components/MeetingForm.jsx';
 import Alert from '../components/Alert.jsx';
+import BackLink from '../components/BackLink.jsx';
 import Icon from '../components/Icon.jsx';
 import Spinner from '../components/Spinner.jsx';
-import { getMeeting, updateMeeting } from '../api/meetings.js';
+import { updateMeeting } from '../api/meetings.js';
 import { getErrorMessage, getFieldErrors } from '../api/errors.js';
-import { formatDateTime, isPast } from '../utils/dates.js';
+import { formatDateTime } from '../utils/dates.js';
+import { isMeetingEndedError, isMeetingLocked, useMeeting } from '../utils/meetings.js';
 import { useDocumentTitle } from '../utils/ui.js';
 
 export default function EditMeetingPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [meeting, setMeeting] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
+  const { meeting, setMeeting, loading, error: loadError } = useMeeting(id);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   useDocumentTitle(meeting ? `Edit ${meeting.title}` : 'Edit meeting');
-
-  useEffect(() => {
-    let cancelled = false;
-    getMeeting(id)
-      .then((m) => !cancelled && setMeeting(m))
-      .catch((err) => !cancelled && setLoadError(getErrorMessage(err, "We couldn't load this meeting.")))
-      .finally(() => !cancelled && setLoading(false));
-    return () => {
-      cancelled = true;
-    };
-  }, [id]);
 
   const handleSubmit = async (payload) => {
     setSubmitting(true);
@@ -40,9 +29,7 @@ export default function EditMeetingPage() {
       navigate(`/meetings/${id}`, { state: { flash: 'Your changes were saved.' } });
     } catch (err) {
       // The meeting ended while the form was open: the API refuses the change, so show the locked view.
-      if (err?.response?.status === 409 && isPast(meeting.endTime)) {
-        setMeeting((m) => ({ ...m, completed: true }));
-      }
+      if (isMeetingEndedError(err, meeting)) setMeeting((m) => ({ ...m, completed: true }));
       setFieldErrors(getFieldErrors(err));
       setError(getErrorMessage(err, "We couldn't save your changes."));
       setSubmitting(false);
@@ -54,10 +41,7 @@ export default function EditMeetingPage() {
     return (
       <section className="mx-auto max-w-3xl">
         <Alert type="error">{loadError}</Alert>
-        <Link to="/meetings" className="back-link">
-          <Icon name="arrowLeft" size={16} />
-          Back to meetings
-        </Link>
+        <BackLink to="/meetings">Back to meetings</BackLink>
       </section>
     );
   }
@@ -68,14 +52,11 @@ export default function EditMeetingPage() {
           Only the organizer ({meeting.organizer.name}) can edit this meeting. Contact them if something needs
           to change.
         </Alert>
-        <Link to={`/meetings/${id}`} className="back-link">
-          <Icon name="arrowLeft" size={16} />
-          Back to meeting
-        </Link>
+        <BackLink to={`/meetings/${id}`}>Back to meeting</BackLink>
       </section>
     );
   }
-  if (meeting.completed || isPast(meeting.endTime)) {
+  if (isMeetingLocked(meeting)) {
     return (
       <section className="mx-auto max-w-xl">
         <div className="card empty-card">
@@ -98,10 +79,7 @@ export default function EditMeetingPage() {
 
   return (
     <section>
-      <Link to={`/meetings/${id}`} className="back-link">
-        <Icon name="arrowLeft" size={16} />
-        Back to meeting
-      </Link>
+      <BackLink to={`/meetings/${id}`}>Back to meeting</BackLink>
       <div className="page-header">
         <div>
           <h1>Edit meeting</h1>

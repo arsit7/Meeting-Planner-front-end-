@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { addParticipant, deleteMeeting, getMeeting, removeParticipant } from '../api/meetings.js';
+import { addParticipant, deleteMeeting, removeParticipant } from '../api/meetings.js';
 import { getErrorMessage } from '../api/errors.js';
 import Alert from '../components/Alert.jsx';
+import BackLink from '../components/BackLink.jsx';
 import Spinner from '../components/Spinner.jsx';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import ParticipantList from '../components/ParticipantList.jsx';
@@ -10,7 +11,8 @@ import AddParticipantForm from '../components/AddParticipantForm.jsx';
 import Avatar from '../components/Avatar.jsx';
 import Icon from '../components/Icon.jsx';
 import { DateBlock } from '../components/MeetingCard.jsx';
-import { formatDateTime, formatTimeRange, isOngoing, isPast } from '../utils/dates.js';
+import { formatDateTime, formatTimeRange, isOngoing } from '../utils/dates.js';
+import { isMeetingEndedError, isMeetingLocked, useMeeting } from '../utils/meetings.js';
 import { useDocumentTitle, useFlash } from '../utils/ui.js';
 
 // setTimeout can't wait longer than ~24.8 days; meetings further out are locked by the render-time check.
@@ -19,9 +21,7 @@ const MAX_TIMEOUT_MS = 2 ** 31 - 1;
 export default function MeetingDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [meeting, setMeeting] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const { meeting, setMeeting, loading, error } = useMeeting(id);
   const [actionError, setActionError] = useState('');
   const [flash, setFlash] = useFlash();
   const [removingId, setRemovingId] = useState(null);
@@ -29,18 +29,6 @@ export default function MeetingDetailPage() {
   // { type: 'remove', participant } or { type: 'delete' } while the confirm dialog is open.
   const [pendingAction, setPendingAction] = useState(null);
   useDocumentTitle(meeting?.title ?? 'Meeting');
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    getMeeting(id)
-      .then((m) => !cancelled && setMeeting(m))
-      .catch((err) => !cancelled && setError(getErrorMessage(err, "We couldn't load this meeting.")))
-      .finally(() => !cancelled && setLoading(false));
-    return () => {
-      cancelled = true;
-    };
-  }, [id]);
 
   // Lock the page the moment the meeting ends, even if it stays open.
   const endTime = meeting?.endTime;
@@ -51,13 +39,11 @@ export default function MeetingDetailPage() {
     if (msUntilEnd > MAX_TIMEOUT_MS) return undefined;
     const timer = setTimeout(() => setMeeting((m) => ({ ...m, completed: true })), Math.max(msUntilEnd, 0));
     return () => clearTimeout(timer);
-  }, [endTime, alreadyCompleted]);
+  }, [endTime, alreadyCompleted, setMeeting]);
 
   // The API refuses changes to a meeting that has ended (409); reflect that if it happened mid-visit.
   const lockIfEnded = (err) => {
-    if (err?.response?.status === 409 && isPast(meeting.endTime)) {
-      setMeeting((m) => ({ ...m, completed: true }));
-    }
+    if (isMeetingEndedError(err, meeting)) setMeeting((m) => ({ ...m, completed: true }));
   };
 
   const handleAdd = async (participant) => {
@@ -111,25 +97,18 @@ export default function MeetingDetailPage() {
     return (
       <section className="mx-auto max-w-3xl">
         <Alert type="error">{error}</Alert>
-        <Link to="/meetings" className="back-link">
-          <Icon name="arrowLeft" size={16} />
-          Back to meetings
-        </Link>
+        <BackLink to="/meetings">Back to meetings</BackLink>
       </section>
     );
   }
 
   const ongoing = isOngoing(meeting.startTime, meeting.endTime);
-  // Trust the server's flag, but also lock on the local clock in case the page has been open a while.
-  const past = meeting.completed || isPast(meeting.endTime);
+  const past = isMeetingLocked(meeting);
   const canChange = meeting.owner && !past;
 
   return (
     <section>
-      <Link to="/meetings" className="back-link">
-        <Icon name="arrowLeft" size={16} />
-        All meetings
-      </Link>
+      <BackLink to="/meetings">All meetings</BackLink>
 
       <div
         className={`card relative flex flex-col gap-5 overflow-hidden sm:flex-row sm:items-start ${

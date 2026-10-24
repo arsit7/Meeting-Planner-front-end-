@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import MeetingForm from '../components/MeetingForm.jsx';
 import Alert from '../components/Alert.jsx';
-import Icon from '../components/Icon.jsx';
+import BackLink from '../components/BackLink.jsx';
 import { createMeeting } from '../api/meetings.js';
 import { getErrorMessage, getFieldErrors } from '../api/errors.js';
 import { useDocumentTitle } from '../utils/ui.js';
@@ -30,10 +30,7 @@ export default function NewMeetingPage() {
 
   return (
     <section>
-      <Link to="/meetings" className="back-link">
-        <Icon name="arrowLeft" size={16} />
-        All meetings
-      </Link>
+      <BackLink to="/meetings">All meetings</BackLink>
       <div className="page-header">
         <div>
           <h1>New meeting</h1>
