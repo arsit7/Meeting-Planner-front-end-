@@ -1,5 +1,6 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { Link } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import MeetingsPage from './MeetingsPage.jsx';
 import { renderWithAuth, testUser } from '../test/renderWithAuth.jsx';
@@ -117,6 +118,25 @@ describe('MeetingsPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Clear filters' }));
     await waitFor(() => expect(lastRequest()).toEqual({ q: '', filter: 'all', page: 0, size: 10 }));
     expect(screen.getByRole('searchbox', { name: 'Search meetings' })).toHaveValue('');
+  });
+
+  it('drops the search when the URL is reset from outside the box, e.g. the sidebar link', async () => {
+    renderWithAuth(
+      <>
+        <Link to="/meetings">All meetings</Link>
+        <MeetingsPage />
+      </>,
+      { auth: { isAuthenticated: true, user: testUser }, route: '/meetings?q=retro' },
+    );
+    expect(await screen.findByRole('searchbox', { name: 'Search meetings' })).toHaveValue('retro');
+
+    await userEvent.click(screen.getByRole('link', { name: 'All meetings' }));
+
+    expect(screen.getByRole('searchbox', { name: 'Search meetings' })).toHaveValue('');
+    await waitFor(() => expect(lastRequest()).toEqual({ q: '', filter: 'all', page: 0, size: 10 }));
+    // Wait past the search delay: the old text must not be sent again.
+    await new Promise((resolve) => setTimeout(resolve, 400));
+    expect(lastRequest().q).toBe('');
   });
 
   it('welcomes a user who has no meetings at all', async () => {

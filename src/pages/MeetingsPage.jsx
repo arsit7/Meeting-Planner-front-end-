@@ -7,6 +7,7 @@ import Icon from '../components/Icon.jsx';
 import Spinner from '../components/Spinner.jsx';
 import MeetingCard from '../components/MeetingCard.jsx';
 import Pagination from '../components/Pagination.jsx';
+import { LIMITS } from '../utils/validation.js';
 import { useDocumentTitle, useFlash } from '../utils/ui.js';
 
 const TABS = [
@@ -59,6 +60,12 @@ export default function MeetingsPage() {
     [setSearchParams],
   );
 
+  // Follow the URL when it changes from outside the box (the sidebar link, "Clear filters", back button);
+  // otherwise the debounce below would put the old search straight back.
+  useEffect(() => {
+    setSearchText((text) => (text.trim() === query ? text : query));
+  }, [query]);
+
   // Send the search to the server once the user pauses typing, starting again from page 1.
   useEffect(() => {
     if (searchText.trim() === query.trim()) return undefined;
@@ -92,10 +99,7 @@ export default function MeetingsPage() {
     }
   }, [data, page, updateParams]);
 
-  const clearFilters = () => {
-    setSearchText('');
-    updateParams({ tab: '', q: '', page: '' });
-  };
+  const clearFilters = () => updateParams({ tab: '', q: '', page: '' });
 
   const counts = data?.counts;
   const hasNoMeetingsAtAll = counts && counts.all === 0 && !query;
@@ -166,7 +170,7 @@ export default function MeetingsPage() {
             type="search"
             placeholder="Search by title or organizer…"
             value={searchText}
-            maxLength={100}
+            maxLength={LIMITS.search}
             onChange={(e) => setSearchText(e.target.value)}
             className="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pr-10 pl-10 text-sm shadow-sm transition outline-none placeholder:text-slate-400 hover:border-slate-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15"
           />
@@ -219,7 +223,7 @@ export default function MeetingsPage() {
       {data && !error && meetings.length > 0 && (
         <div className={`transition-opacity duration-150 ${loading ? 'opacity-60' : ''}`} aria-busy={loading}>
           {upcoming.length > 0 && <MeetingGroup title="Upcoming" meetings={upcoming} />}
-          {completed.length > 0 && <MeetingGroup title="Completed" meetings={completed} past />}
+          {completed.length > 0 && <MeetingGroup title="Completed" meetings={completed} />}
           <Pagination
             page={page}
             size={data.size}
@@ -238,14 +242,14 @@ export default function MeetingsPage() {
   );
 }
 
-function MeetingGroup({ title, meetings, past = false }) {
+function MeetingGroup({ title, meetings }) {
   return (
     <div className="mb-8 last-of-type:mb-0">
       <h2 className="group-title">{title}</h2>
       <ul className="m-0 grid list-none grid-cols-1 gap-3 p-0 lg:grid-cols-2">
         {meetings.map((m) => (
           <li key={m.id} className="min-w-0">
-            <MeetingCard meeting={m} past={past} />
+            <MeetingCard meeting={m} />
           </li>
         ))}
       </ul>

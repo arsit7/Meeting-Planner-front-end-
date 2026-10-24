@@ -14,8 +14,9 @@ export function DateBlock({ iso, tone = 'default' }) {
 }
 
 /** Clickable meeting summary used on the dashboard and the meetings list. */
-export default function MeetingCard({ meeting: m, past = false }) {
-  const ongoing = isOngoing(m.startTime, m.endTime);
+export default function MeetingCard({ meeting: m }) {
+  const past = m.completed;
+  const ongoing = !past && isOngoing(m.startTime, m.endTime);
   const dayLabel = !past && !ongoing && relativeDayLabel(m.startTime);
   return (
     <Link

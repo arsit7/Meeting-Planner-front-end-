@@ -199,7 +199,6 @@ export default function DashboardPage() {
                 viewAllTo="/meetings?tab=completed"
                 page={data.completed}
                 emptyText="No completed meetings yet."
-                past
               />
             </div>
           </div>
@@ -231,7 +230,7 @@ function StatTile({ to, icon, tone, label, value, note }) {
 }
 
 /** `page` is the first page of a filter tab, so totalElements counts the whole tab, not just what's shown. */
-function MeetingPreview({ title, viewAllTo, page, emptyText, past = false }) {
+function MeetingPreview({ title, viewAllTo, page, emptyText }) {
   const meetings = page.content;
   return (
     <div>
@@ -255,7 +254,7 @@ function MeetingPreview({ title, viewAllTo, page, emptyText, past = false }) {
         <ul className="m-0 list-none space-y-3 p-0">
           {meetings.map((m) => (
             <li key={m.id}>
-              <MeetingCard meeting={m} past={past} />
+              <MeetingCard meeting={m} />
             </li>
           ))}
         </ul>
