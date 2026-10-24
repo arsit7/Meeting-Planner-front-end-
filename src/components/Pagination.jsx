@@ -9,7 +9,11 @@ export function pageWindow(current, total) {
   if (current <= 3) [2, 3, 4].forEach((p) => pages.add(p));
   if (current >= total - 2) [total - 3, total - 2, total - 1].forEach((p) => pages.add(p));
   const sorted = [...pages].filter((p) => p >= 1 && p <= total).sort((a, b) => a - b);
-  return sorted.flatMap((p, i) => (i > 0 && p - sorted[i - 1] > 1 ? [null, p] : [p]));
+  return sorted.flatMap((p, i) => {
+    const step = i === 0 ? 1 : p - sorted[i - 1];
+    if (step === 2) return [p - 1, p]; // a gap of one page shows that page rather than an ellipsis
+    return step > 2 ? [null, p] : [p];
+  });
 }
 
 /**
