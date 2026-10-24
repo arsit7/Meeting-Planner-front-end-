@@ -2,22 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import FormField from './FormField.jsx';
 import DatePicker from './DatePicker.jsx';
 import TimePicker from './TimePicker.jsx';
-import Avatar from './Avatar.jsx';
 import Icon from './Icon.jsx';
-import { DateBlock } from './MeetingCard.jsx';
-import { validateMeeting } from '../utils/validation.js';
-import {
-  formatDuration,
-  formatTimeValue,
-  fromLocalInputValue,
-  parseDateKey,
-  toLocalInputValue,
-} from '../utils/dates.js';
+import MeetingSummary from './MeetingSummary.jsx';
+import { LIMITS, validateMeeting } from '../utils/validation.js';
+import { formatDuration, fromLocalInputValue, toLocalInputValue } from '../utils/dates.js';
 import { focusFirstInvalid } from '../utils/ui.js';
 
 let nextRowKey = 0;
 const NO_ERRORS = {};
-const DESCRIPTION_MAX = 2000;
 const MINUTE_MS = 60 * 1000;
 const DEFAULT_DURATION_MIN = 60;
 const DURATION_PRESETS = [15, 30, 45, 60, 90, 120];
@@ -183,7 +175,6 @@ export default function MeetingForm({
   };
 
   const sameDayEnd = !values.multiDay || values.endDate === values.date;
-  const filledParticipants = participants.filter((p) => p.name.trim() || p.email.trim());
 
   return (
     <form ref={formRef} onSubmit={handleSubmit} noValidate className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
@@ -194,7 +185,7 @@ export default function MeetingForm({
             value={values.title}
             onChange={setField('title')}
             error={allErrors.title}
-            maxLength={150}
+            maxLength={LIMITS.title}
             placeholder="e.g. Sprint planning"
             autoFocus={!initialMeeting}
           />
@@ -205,9 +196,9 @@ export default function MeetingForm({
             value={values.description}
             onChange={setField('description')}
             error={allErrors.description}
-            maxLength={DESCRIPTION_MAX}
+            maxLength={LIMITS.description}
             placeholder="Agenda, links, notes…"
-            hint={`${values.description.length} / ${DESCRIPTION_MAX} characters`}
+            hint={`${values.description.length} / ${LIMITS.description} characters`}
           />
         </Section>
 
@@ -330,83 +321,14 @@ export default function MeetingForm({
         )}
       </div>
 
-      <aside className="min-w-0 space-y-4 lg:sticky lg:top-24">
-        <div className="card mb-0 overflow-hidden p-0">
-          <div className="h-1.5 bg-gradient-to-r from-indigo-500 to-violet-500" aria-hidden="true" />
-          <div className="p-5">
-            <p className="mb-3 text-xs font-semibold tracking-wider text-slate-500 uppercase">Summary</p>
-            <div className="flex items-start gap-3">
-              {values.date ? (
-                <DateBlock iso={parseDateKey(values.date).toISOString()} />
-              ) : (
-                <div className="date-block" aria-hidden="true" />
-              )}
-              <div className="min-w-0">
-                <p className={`m-0 font-semibold [overflow-wrap:anywhere] ${values.title.trim() ? 'text-slate-900' : 'text-slate-400 italic'}`}>
-                  {values.title.trim() || 'Untitled meeting'}
-                </p>
-                {values.date && (
-                  <p className="m-0 mt-0.5 text-sm text-slate-500">
-                    {parseDateKey(values.date).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <dl className="mt-4 mb-0 space-y-2.5 border-t border-slate-100 pt-4 text-sm">
-              <SummaryRow icon="clock" label="Time">
-                {values.startTime && values.endTime
-                  ? `${formatTimeValue(values.startTime)} – ${formatTimeValue(values.endTime)}${
-                      values.multiDay && values.endDate !== values.date
-                        ? ` (${parseDateKey(values.endDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })})`
-                        : ''
-                    }`
-                  : '—'}
-              </SummaryRow>
-              <SummaryRow icon="trend" label="Duration">
-                {durationMin === null ? (
-                  '—'
-                ) : durationMin > 0 ? (
-                  formatDuration(durationMin)
-                ) : (
-                  <span className="text-red-600">End is before start</span>
-                )}
-              </SummaryRow>
-              {withParticipants && (
-                <SummaryRow icon="users" label="Invited">
-                  {filledParticipants.length === 0 ? (
-                    'Just you so far'
-                  ) : (
-                    <span className="flex -space-x-2">
-                      {filledParticipants.slice(0, 5).map((p) => (
-                        <span key={p.key} className="rounded-full ring-2 ring-white">
-                          <Avatar user={{ name: p.name.trim() || p.email.trim() }} size={26} />
-                        </span>
-                      ))}
-                      {filledParticipants.length > 5 && (
-                        <span className="flex size-[26px] items-center justify-center rounded-full bg-slate-100 text-[0.65rem] font-bold text-slate-600 ring-2 ring-white">
-                          +{filledParticipants.length - 5}
-                        </span>
-                      )}
-                    </span>
-                  )}
-                </SummaryRow>
-              )}
-            </dl>
-          </div>
-          <div className="flex flex-col gap-2 border-t border-slate-100 bg-slate-50/60 p-4">
-            <button type="submit" className="btn btn-primary btn-block py-3" disabled={submitting} aria-busy={submitting}>
-              {submitting && <span className="btn-spinner" aria-hidden="true" />}
-              {submitting ? 'Saving…' : submitLabel}
-            </button>
-            {onCancel && (
-              <button type="button" className="btn btn-ghost btn-block" onClick={onCancel}>
-                Cancel
-              </button>
-            )}
-          </div>
-        </div>
-      </aside>
+      <MeetingSummary
+        values={values}
+        durationMin={durationMin}
+        participants={withParticipants ? participants : undefined}
+        submitLabel={submitLabel}
+        submitting={submitting}
+        onCancel={onCancel}
+      />
     </form>
   );
 }
@@ -427,16 +349,3 @@ function Section({ icon, title, subtitle, children }) {
     </section>
   );
 }
-
-function SummaryRow({ icon, label, children }) {
-  return (
-    <div className="flex items-center justify-between gap-3">
-      <dt className="flex items-center gap-2 text-slate-500">
-        <Icon name={icon} size={16} className="text-slate-400" />
-        {label}
-      </dt>
-      <dd className="m-0 text-right font-medium text-slate-900">{children}</dd>
-    </div>
-  );
-}
-

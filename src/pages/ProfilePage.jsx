@@ -4,6 +4,7 @@ import { uploadAvatar } from '../api/users.js';
 import { getErrorMessage } from '../api/errors.js';
 import Avatar from '../components/Avatar.jsx';
 import Alert from '../components/Alert.jsx';
+import Icon from '../components/Icon.jsx';
 import { useDocumentTitle } from '../utils/ui.js';
 
 const MAX_BYTES = 2 * 1024 * 1024;
@@ -11,15 +12,6 @@ const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 const AVATAR_SIZE = 120;
 
 const formatSize = (bytes) => (bytes < 1024 * 1024 ? `${Math.ceil(bytes / 1024)} KB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`);
-
-function PencilIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 20h9" />
-      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-    </svg>
-  );
-}
 
 export default function ProfilePage() {
   const { user, updateUser } = useAuth();
@@ -139,7 +131,7 @@ export default function ProfilePage() {
               className="absolute right-1 bottom-1 flex size-9 items-center justify-center rounded-full border-[3px] border-white bg-indigo-600 text-white shadow-md transition-transform duration-200 group-hover:scale-110 group-hover:bg-indigo-700"
               aria-hidden="true"
             >
-              <PencilIcon />
+              <Icon name="edit" size={16} strokeWidth={2.2} />
             </span>
           </button>
           <input

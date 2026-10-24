@@ -4,7 +4,7 @@ import { useAuth } from '../auth/AuthContext.jsx';
 import FormField from '../components/FormField.jsx';
 import Alert from '../components/Alert.jsx';
 import AuthLayout from '../components/AuthLayout.jsx';
-import { validateSignup } from '../utils/validation.js';
+import { LIMITS, validateSignup } from '../utils/validation.js';
 import { focusFirstInvalid, useDocumentTitle } from '../utils/ui.js';
 import { getErrorMessage, getFieldErrors } from '../api/errors.js';
 
@@ -63,7 +63,7 @@ export default function SignupPage() {
           value={values.name}
           onChange={set('name')}
           error={errors.name}
-          maxLength={100}
+          maxLength={LIMITS.name}
         />
         <FormField
           label="Email"
@@ -81,7 +81,7 @@ export default function SignupPage() {
           value={values.password}
           onChange={set('password')}
           error={errors.password}
-          hint="Use 8 to 72 characters."
+          hint={`Use ${LIMITS.passwordMin} to ${LIMITS.passwordMax} characters.`}
         />
         <FormField
           label="Confirm password"
