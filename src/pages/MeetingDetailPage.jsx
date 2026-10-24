@@ -128,7 +128,7 @@ export default function MeetingDetailPage() {
         {meeting.owner ? (
           <>
             <h3 className="subheading">Add a participant</h3>
-            <AddParticipantForm onAdd={handleAdd} />
+            <AddParticipantForm onAdd={handleAdd} participantCount={meeting.participants.length} />
           </>
         ) : (
           <p className="muted small">Only the organizer can change the participant list.</p>

@@ -100,6 +100,30 @@ describe('MeetingDetailPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Add participant' }));
 
     expect(await screen.findByText('This person is already a participant')).toBeInTheDocument();
+
+    await userEvent.type(screen.getByLabelText('Email'), 'x');
+    expect(screen.queryByText('This person is already a participant')).not.toBeInTheDocument();
+  });
+
+  it('clears a stale add-participant error when the list changes', async () => {
+    meetingsApi.getMeeting.mockResolvedValue(baseMeeting);
+    meetingsApi.addParticipant.mockRejectedValue({
+      response: { status: 409, data: { message: 'This person is already a participant' } },
+    });
+    meetingsApi.removeParticipant.mockResolvedValue(undefined);
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+    renderDetail();
+    await screen.findByRole('heading', { name: 'Quarterly review' });
+
+    await userEvent.type(screen.getByLabelText('Name'), 'Bob');
+    await userEvent.type(screen.getByLabelText('Email'), 'bob@example.com');
+    await userEvent.click(screen.getByRole('button', { name: 'Add participant' }));
+    await screen.findByText('This person is already a participant');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Remove Bob Builder' }));
+
+    expect(await screen.findByText('Bob Builder was removed.')).toBeInTheDocument();
+    expect(screen.queryByText('This person is already a participant')).not.toBeInTheDocument();
   });
 
   it('shows an error when the meeting cannot be loaded', async () => {

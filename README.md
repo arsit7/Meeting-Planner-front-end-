@@ -134,7 +134,7 @@ npm test
 | `MeetingDetailPage.test.jsx`  | Renders details and participants, organizer vs invitee controls, empty state, add participant, 409 duplicate message, load error |
 | `validation.test.js`          | Validation helpers, JWT expiry detection                                  |
 
-Last run: **26 tests in 5 files, all passing**. `npm run build` also succeeds.
+Last run: **27 tests in 5 files, all passing**. `npm run build` also succeeds. The full UI flow was also run in a real browser (Microsoft Edge, via Playwright): 20 of 20 steps passed.
 
 ## Known limitations
 
