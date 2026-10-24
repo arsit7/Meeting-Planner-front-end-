@@ -151,7 +151,7 @@ Tests sit next to the code they cover. The API is mocked, so the backend doesn't
 | API layer | `errors`, `requestSharing` | User-facing error messages, one network call for overlapping identical requests, avatar cache |
 | Helpers | `validation`, `meetings`, `meetingStats` | Validation rules, lock rules, chart month labels, token expiry |
 
-Last run: **74 tests in 15 files, all passing**. `npm run build` also succeeds. Tests build expected
+Last run: **74 tests in 14 files, all passing**. `npm run build` also succeeds. Tests build expected
 dates and times with the app's own formatters, so they pass in any locale.
 
 ## Design decisions
