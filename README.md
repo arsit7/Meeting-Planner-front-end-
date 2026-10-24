@@ -54,11 +54,13 @@ src/
 ├── styles.css               Tailwind entry: theme tokens plus shared primitives (btn, card, badge, field, alert, chart)
 ├── api/                     client.js (Axios instance + interceptors), auth.js, users.js, meetings.js, errors.js
 ├── auth/                    AuthContext.jsx (session state), ProtectedRoute.jsx, tokenStorage.js
-├── components/              Layout (sidebar + top bar), AuthLayout, MeetingForm, MeetingCard, MonthlyMeetingsChart,
-│                            ParticipantList, AddParticipantForm, Avatar, FormField, Alert, ConfirmDialog, Icon, Spinner
+├── components/              Layout (sidebar + top bar), AuthLayout, MeetingForm + MeetingSummary, DatePicker,
+│                            TimePicker, MeetingCard, MonthlyMeetingsChart, Pagination, ParticipantList,
+│                            AddParticipantForm, Avatar, FormField, Alert, ConfirmDialog, BackLink, Icon, Spinner
 ├── pages/                   Login, Signup, Dashboard, Meetings, NewMeeting, EditMeeting, MeetingDetail, Profile, NotFound
-├── utils/                   validation.js (mirrors backend rules), dates.js (local ↔ ISO conversions),
-│                            meetingStats.js (dashboard figures), ui.js (page title, focus, flash-message hooks)
+├── utils/                   validation.js (rules and LIMITS mirroring the backend), dates.js (local ↔ ISO, formatting),
+│                            meetings.js (useMeeting loader, completed-meeting lock rules), meetingStats.js (chart
+│                            labels), ui.js (page title, focus, flash-message and dismiss hooks)
 └── test/                    setup.js, renderWithAuth.jsx (test helper)
 ```
 
@@ -140,32 +142,69 @@ There are no secrets. Copy `.env.example` to `.env.local` only if you need to ch
 npm test
 ```
 
-| File                          | Covers                                                                    |
-|-------------------------------|---------------------------------------------------------------------------|
-| `LoginPage.test.jsx`          | Required-field and email validation, 401 message, unreachable backend, successful redirect, expired-session notice |
-| `ProtectedRoute.test.jsx`     | Redirect when logged out (remembers target), renders when logged in, loading state |
-| `MeetingForm.test.jsx`        | Blank title, missing times, end before or equal to start, participant email and duplicate checks, payload shape, edit pre-fill + server errors |
-| `MeetingDetailPage.test.jsx`  | Renders details and participants, organizer vs invitee controls, empty state, add participant, 409 duplicate message, load error |
-| `validation.test.js`          | Validation helpers, JWT expiry detection                                  |
+Tests sit next to the code they cover. The API is mocked, so the backend doesn't need to be running.
 
-Last run: **27 tests in 5 files, all passing**. `npm run build` also succeeds. The full UI flow was also run in a real browser (Microsoft Edge, via Playwright): 20 of 20 steps passed.
+| Area | Files | Covers |
+|------|-------|--------|
+| Pages | `LoginPage`, `DashboardPage`, `MeetingsPage`, `MeetingDetailPage`, `EditMeetingPage`, `ProfilePage` | Validation and server errors, dashboard stats and chart, server-side search/tabs/paging, organizer vs invitee controls, completed-meeting lock, avatar upload |
+| Components | `MeetingForm`, `Pagination`, `ProtectedRoute` | Date/time pickers and duration logic, keyboard calendar, payload shape, page-number window, auth redirect |
+| API layer | `errors`, `requestSharing` | User-facing error messages, one network call for overlapping identical requests, avatar cache |
+| Helpers | `validation`, `meetings`, `meetingStats` | Validation rules, lock rules, chart month labels, token expiry |
+
+Last run: **74 tests in 15 files, all passing**. `npm run build` also succeeds. Tests build expected
+dates and times with the app's own formatters, so they pass in any locale.
+
+## Design decisions
+
+- **The server does the work.** Search, filter tabs and pagination call `GET /api/meetings`, and the
+  dashboard uses `GET /api/meetings/stats`, so the browser never downloads every meeting.
+- **State in the URL.** The Meetings page keeps tab, search, page and page size in the query string, so
+  refreshes, the back button and dashboard links all land on the same view.
+- **No global state library.** Auth lives in one React context; each page loads its own data. Identical
+  requests that overlap (e.g. React StrictMode in development) share one network call, and the avatar is
+  downloaded once per session.
+- **Tailwind CSS 4.** Layouts use utility classes in JSX; repeated primitives (buttons, cards, badges,
+  fields, alerts, chart) are defined once with `@apply` in `styles.css`. Icons are inline SVG, so there's
+  no icon library.
+- **Rules mirrored, not trusted.** Client validation and the completed-meeting lock give instant feedback,
+  but the backend enforces the same rules; the UI also handles the API's `409` if a meeting ends while a
+  page is open.
+- **Accessible custom controls.** The date and time pickers, confirm dialog and menus support the keyboard
+  (arrows, Enter, Escape) and focus management.
+
+## Assumptions
+
+- Users work in their browser's time zone; times are entered and shown locally and sent to the API as UTC.
+- Every login lands on the dashboard (requested behaviour), rather than returning to the page that asked
+  for login.
+- Completed meetings stay visible as a record but are read-only; organizers can still delete them.
+- A new meeting defaults to the next half-hour slot for one hour; times are offered in 15-minute steps.
 
 ## Known limitations
 
 - The token lives in `localStorage`, which is simple for a prototype but readable by any script on the
   page if an XSS bug existed. A production version would use short-lived access tokens plus an
   `HttpOnly` refresh cookie.
-- Times are entered in the browser's local time zone and sent as UTC.
-- No pagination or search on the meeting list.
+- The Inter font loads from Google Fonts, so the UI falls back to the system font when offline.
+- No profile editing (name, e-mail, password), matching the backend.
+- The UI was checked with automated tests and headless-browser screenshots, not end-to-end browser tests.
 - `npm audit` reports advisories in **Vitest 3's** dependencies (`tinypool`, `@vitest/mocker`). They
   affect only the local test runner, not the app bundle. The fix is Vitest 5, which needs Node ≥ 20.19.
   Upgrade Node and run `npm i -D vitest@latest` to clear them.
+
+## What I would improve with more time
+
+- End-to-end tests (Playwright) running against the real backend in CI.
+- Profile editing, and a refresh-token flow so users aren't logged out after 60 minutes.
+- A dark theme, plus saved filters and sorting options on the Meetings page.
+- Optimistic updates for adding and removing participants.
+- Upgrade to Node 20.19+ and Vitest 5 to clear the dev-only audit advisories.
 
 ## Troubleshooting
 
 | Problem                                         | Fix                                                                   |
 |-------------------------------------------------|-----------------------------------------------------------------------|
-| "Cannot reach the server. Is the backend running?" | Start the backend on port 8080 (or set `VITE_BACKEND_URL`)         |
+| "Cannot reach the server…"                      | Start the backend on port 8080 (or set `VITE_BACKEND_URL`)            |
 | `Port 5173 is already in use`                   | Stop the other process. The port is fixed because the backend's CORS setting expects it |
 | Logged out unexpectedly                         | Tokens expire after 60 minutes by default. Log in again               |
 | `npm install` fails on an engine check          | Use Node 20 or newer                                                  |
