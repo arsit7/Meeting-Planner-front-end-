@@ -6,6 +6,7 @@ import SignupPage from './pages/SignupPage.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import NewMeetingPage from './pages/NewMeetingPage.jsx';
 import EditMeetingPage from './pages/EditMeetingPage.jsx';
+import MeetingsPage from './pages/MeetingsPage.jsx';
 import MeetingDetailPage from './pages/MeetingDetailPage.jsx';
 import ProfilePage from './pages/ProfilePage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
@@ -18,8 +19,9 @@ export default function App() {
 
       <Route element={<ProtectedRoute />}>
         <Route element={<Layout />}>
-          <Route path="/" element={<Navigate to="/meetings" replace />} />
-          <Route path="/meetings" element={<DashboardPage />} />
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/meetings" element={<MeetingsPage />} />
           <Route path="/meetings/new" element={<NewMeetingPage />} />
           <Route path="/meetings/:id" element={<MeetingDetailPage />} />
           <Route path="/meetings/:id/edit" element={<EditMeetingPage />} />

@@ -9,7 +9,7 @@ function renderLogin(auth) {
   return renderWithAuth(
     <Routes>
       <Route path="/login" element={<LoginPage />} />
-      <Route path="/meetings" element={<h1>Dashboard</h1>} />
+      <Route path="/dashboard" element={<h1>Dashboard</h1>} />
     </Routes>,
     { auth, route: '/login' },
   );
@@ -33,8 +33,13 @@ describe('LoginPage', () => {
     await userEvent.type(screen.getByLabelText('Password'), 'secret123');
     await userEvent.click(screen.getByRole('button', { name: 'Log in' }));
 
-    expect(screen.getByText('Enter a valid email address')).toBeInTheDocument();
+    expect(screen.getByText('Enter a valid email address, like name@example.com')).toBeInTheDocument();
     expect(screen.getByLabelText('Email')).toHaveAttribute('aria-invalid', 'true');
+    await waitFor(() => expect(screen.getByLabelText('Email')).toHaveFocus());
+    expect(auth.login).not.toHaveBeenCalled();
+
+    await userEvent.type(screen.getByLabelText('Email'), '@example.com');
+    expect(screen.queryByText(/Enter a valid email address/)).not.toBeInTheDocument();
     expect(auth.login).not.toHaveBeenCalled();
   });
 

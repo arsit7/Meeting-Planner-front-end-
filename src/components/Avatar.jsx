@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { fetchAvatarBlob } from '../api/users.js';
+import { getAvatarObjectUrl } from '../api/users.js';
 
 function initials(name = '') {
   return name
@@ -20,18 +20,13 @@ export default function Avatar({ user, size = 36 }) {
       setSrc(null);
       return undefined;
     }
-    let objectUrl = null;
+    // The object URL is shared through the cache, so it is not revoked when this copy unmounts.
     let cancelled = false;
-    fetchAvatarBlob(avatarUrl)
-      .then((blob) => {
-        if (cancelled) return;
-        objectUrl = URL.createObjectURL(blob);
-        setSrc(objectUrl);
-      })
+    getAvatarObjectUrl(avatarUrl)
+      .then((url) => !cancelled && setSrc(url))
       .catch(() => !cancelled && setSrc(null));
     return () => {
       cancelled = true;
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
   }, [avatarUrl]);
 

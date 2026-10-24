@@ -1,13 +1,29 @@
-import client from './client.js';
+import client, { shareInFlight } from './client.js';
 
-export async function listMeetings() {
-  const { data } = await client.get('/meetings');
-  return data;
+/**
+ * One page of meetings, searched and filtered by the server.
+ * Resolves to { content, page, size, totalElements, totalPages, counts: { all, upcoming, completed, organized, invited } }.
+ * `page` is zero-based; `filter` is all | upcoming | completed | organized | invited.
+ */
+export function listMeetings({ q = '', filter = 'all', page = 0, size = 10 } = {}) {
+  const params = { q, filter, page, size };
+  return shareInFlight(
+    `GET /meetings?${new URLSearchParams(params)}`,
+    async () => (await client.get('/meetings', { params })).data,
+  );
 }
 
-export async function getMeeting(id) {
-  const { data } = await client.get(`/meetings/${id}`);
-  return data;
+/** Dashboard totals and meetings per month, bucketed in the user's own time zone. */
+export function getMeetingStats({ months = 6, zone = Intl.DateTimeFormat().resolvedOptions().timeZone } = {}) {
+  const params = { months, zone };
+  return shareInFlight(
+    `GET /meetings/stats?${new URLSearchParams(params)}`,
+    async () => (await client.get('/meetings/stats', { params })).data,
+  );
+}
+
+export function getMeeting(id) {
+  return shareInFlight(`GET /meetings/${id}`, async () => (await client.get(`/meetings/${id}`)).data);
 }
 
 export async function createMeeting(payload) {

@@ -7,6 +7,22 @@ const client = axios.create({
 });
 
 let unauthorizedHandler = null;
+const inFlight = new Map();
+
+/**
+ * Runs `request` once for callers that ask for the same `key` while it is still loading, e.g. React
+ * StrictMode running an effect twice in development, or two components mounting together. Once it
+ * settles, the next call makes a fresh request.
+ */
+export function shareInFlight(key, request) {
+  if (!inFlight.has(key)) {
+    inFlight.set(
+      key,
+      request().finally(() => inFlight.delete(key)),
+    );
+  }
+  return inFlight.get(key);
+}
 
 /** Registered by AuthProvider so an expired/invalid token anywhere logs the user out. */
 export function setUnauthorizedHandler(handler) {

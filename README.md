@@ -14,11 +14,22 @@ documents the API, data model, authorization rules and security design in detail
 ## Features
 
 - Signup and login pages with client-side validation and server error display
-- Protected routes: unauthenticated users are redirected to `/login` and returned to the page they wanted
-  after logging in
-- Dashboard listing upcoming and past meetings, with Organizer or "Invited by …" badges
+- Protected routes: unauthenticated users are redirected to `/login`; every login lands on the dashboard
+- Dashboard with summary tiles (completed, upcoming, invited to, last 30 days), a meetings-per-month chart
+  (organized vs invited, last 6 months, with hover details and a table view), and the next and most recently
+  completed meetings. Figures come from `GET /api/meetings/stats` (bucketed in the user's time zone); the two
+  short lists are the first page of the upcoming and completed tabs.
+- Admin-style layout: collapsible sidebar with all sections (remembered per browser), slide-out drawer on
+  phones, top bar with breadcrumbs and an account menu
+- Meetings page with filter tabs (All, Upcoming, Completed, Organized by me, Invited), search and
+  pagination, all done by the API (`GET /api/meetings?q=&filter=&page=&size=`). Search is sent after a short
+  pause in typing, tab badges use the server's per-tab counts, and the tab, search, page and page size live in
+  the URL, so dashboard tiles link straight to a filtered list
 - Create meeting, optionally adding participants in the same form (saved in a single request)
 - Edit meeting details (organizer only)
+- Completed meetings are read-only: once a meeting has ended, Edit and the participant controls disappear,
+  the edit page shows a locked notice, and the page locks itself if the meeting ends while it is open. The
+  backend enforces the same rule (`409`), so this is not UI-only. The organizer can still delete it
 - Meeting details page: add and remove participants, delete the meeting (organizer only; read-only for
   invitees)
 - Profile page with avatar upload (type and size checked before upload)
@@ -29,7 +40,7 @@ documents the API, data model, authorization rules and security design in detail
 
 | Concern     | Choice                                                         |
 |-------------|----------------------------------------------------------------|
-| UI          | React 19, plain CSS (no UI framework)                          |
+| UI          | React 19, Tailwind CSS 4 (via `@tailwindcss/vite`), inline SVG icons |
 | Routing     | React Router 7 (`react-router-dom`)                            |
 | HTTP        | Axios (shared instance with auth and 401 interceptors)         |
 | Build/dev   | Vite 6                                                         |
@@ -40,12 +51,14 @@ documents the API, data model, authorization rules and security design in detail
 ```
 src/
 ├── main.jsx, App.jsx        entry point and route table
-├── styles.css               all styling (CSS variables, responsive rules)
+├── styles.css               Tailwind entry: theme tokens plus shared primitives (btn, card, badge, field, alert, chart)
 ├── api/                     client.js (Axios instance + interceptors), auth.js, users.js, meetings.js, errors.js
 ├── auth/                    AuthContext.jsx (session state), ProtectedRoute.jsx, tokenStorage.js
-├── components/              Layout, MeetingForm, ParticipantList, AddParticipantForm, Avatar, FormField, Alert, Spinner
-├── pages/                   Login, Signup, Dashboard, NewMeeting, EditMeeting, MeetingDetail, Profile, NotFound
-├── utils/                   validation.js (mirrors backend rules), dates.js (local ↔ ISO conversions)
+├── components/              Layout (sidebar + top bar), AuthLayout, MeetingForm, MeetingCard, MonthlyMeetingsChart,
+│                            ParticipantList, AddParticipantForm, Avatar, FormField, Alert, ConfirmDialog, Icon, Spinner
+├── pages/                   Login, Signup, Dashboard, Meetings, NewMeeting, EditMeeting, MeetingDetail, Profile, NotFound
+├── utils/                   validation.js (mirrors backend rules), dates.js (local ↔ ISO conversions),
+│                            meetingStats.js (dashboard figures), ui.js (page title, focus, flash-message hooks)
 └── test/                    setup.js, renderWithAuth.jsx (test helper)
 ```
 
@@ -56,7 +69,8 @@ Tests sit next to the code they cover (`*.test.jsx` / `*.test.js`).
 | Path                  | Access     | Page                                   |
 |-----------------------|------------|----------------------------------------|
 | `/login`, `/signup`   | Public     | Auth forms (redirect away if logged in) |
-| `/meetings`           | Protected  | Dashboard / meeting list               |
+| `/dashboard`          | Protected  | Dashboard (landing page after login)   |
+| `/meetings`           | Protected  | Full meeting list                      |
 | `/meetings/new`       | Protected  | Create meeting                         |
 | `/meetings/:id`       | Protected  | Details + participant management       |
 | `/meetings/:id/edit`  | Protected  | Edit meeting (organizer)               |

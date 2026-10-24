@@ -8,7 +8,7 @@ export function isValidEmail(value) {
 export function validateLogin({ email, password }) {
   const errors = {};
   if (!email?.trim()) errors.email = 'Email is required';
-  else if (!isValidEmail(email)) errors.email = 'Enter a valid email address';
+  else if (!isValidEmail(email)) errors.email = 'Enter a valid email address, like name@example.com';
   if (!password) errors.password = 'Password is required';
   return errors;
 }
@@ -17,10 +17,13 @@ export function validateSignup({ name, email, password, confirmPassword }) {
   const errors = validateLogin({ email, password });
   if (!name?.trim()) errors.name = 'Name is required';
   else if (name.trim().length > 100) errors.name = 'Name must be at most 100 characters';
-  if (password && (password.length < 8 || password.length > 72)) {
-    errors.password = 'Password must be between 8 and 72 characters';
+  if (password && password.length < 8) {
+    errors.password = `Password must be at least 8 characters (${8 - password.length} more needed)`;
+  } else if (password && password.length > 72) {
+    errors.password = 'Password must be at most 72 characters';
   }
-  if (password !== confirmPassword) errors.confirmPassword = 'Passwords do not match';
+  if (password && !confirmPassword) errors.confirmPassword = 'Please confirm your password';
+  else if (password !== confirmPassword) errors.confirmPassword = 'Passwords do not match';
   return errors;
 }
 

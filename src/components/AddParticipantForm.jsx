@@ -45,7 +45,11 @@ export default function AddParticipantForm({ onAdd, participantCount }) {
   };
 
   return (
-    <form className="add-participant" onSubmit={handleSubmit} noValidate>
+    <form
+      className="grid items-start gap-x-3 rounded-2xl bg-slate-50 p-4 sm:grid-cols-[1fr_1fr_auto]"
+      onSubmit={handleSubmit}
+      noValidate
+    >
       <FormField
         label="Name"
         value={values.name}
@@ -59,10 +63,10 @@ export default function AddParticipantForm({ onAdd, participantCount }) {
         onChange={handleChange('email')}
         error={errors.email}
       />
-      <button type="submit" className="btn btn-primary" disabled={submitting}>
+      <button type="submit" className="btn btn-primary sm:mt-7" disabled={submitting}>
         {submitting ? 'Adding…' : 'Add participant'}
       </button>
-      {formError && !errors.name && !errors.email && <p className="field-error full">{formError}</p>}
+      {formError && !errors.name && !errors.email && <p className="field-error mt-3 sm:col-span-3">{formError}</p>}
     </form>
   );
 }

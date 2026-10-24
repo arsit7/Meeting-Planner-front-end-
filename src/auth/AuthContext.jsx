@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import * as authApi from '../api/auth.js';
-import { getMe } from '../api/users.js';
+import { clearAvatarCache, getMe } from '../api/users.js';
 import { setUnauthorizedHandler } from '../api/client.js';
 import { clearToken, getToken, getTokenExpiryMs, isTokenExpired, setToken } from './tokenStorage.js';
 
@@ -14,6 +14,7 @@ export function AuthProvider({ children }) {
 
   const logout = useCallback((expired = false) => {
     clearToken();
+    clearAvatarCache();
     setUser(null);
     setSessionExpired(expired);
     setStatus('ready');

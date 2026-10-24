@@ -13,8 +13,12 @@ describe('validation', () => {
 
   it('enforces signup password length and confirmation', () => {
     const errors = validateSignup({ name: 'A', email: 'a@b.co', password: 'short', confirmPassword: 'other' });
-    expect(errors.password).toMatch(/between 8 and 72/);
+    expect(errors.password).toBe('Password must be at least 8 characters (3 more needed)');
     expect(errors.confirmPassword).toBe('Passwords do not match');
+
+    const tooLong = validateSignup({ name: 'A', email: 'a@b.co', password: 'x'.repeat(73), confirmPassword: '' });
+    expect(tooLong.password).toBe('Password must be at most 72 characters');
+    expect(tooLong.confirmPassword).toBe('Please confirm your password');
   });
 
   it('validates participants', () => {
@@ -23,6 +27,19 @@ describe('validation', () => {
       email: 'Participant email must be a valid email address',
     });
     expect(validateParticipant({ name: 'Bob', email: 'bob@example.com' })).toEqual({});
+  });
+
+  it('requires both times and an end after the start', () => {
+    expect(validateMeeting({ title: 'T', start: '', end: '' })).toMatchObject({
+      startTime: 'Start time is required',
+      endTime: 'End time is required',
+    });
+    expect(validateMeeting({ title: 'T', start: '2026-01-01T10:00', end: '2026-01-01T09:00' }).endTime).toBe(
+      'End time must be after start time',
+    );
+    expect(validateMeeting({ title: 'T', start: '2026-01-01T10:00', end: '2026-01-01T10:00' }).endTime).toBe(
+      'End time must be after start time',
+    );
   });
 
   it('accepts a valid meeting', () => {
